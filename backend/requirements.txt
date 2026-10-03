@@ -1,0 +1,11 @@
+# DEV A: Install with: pip install -r requirements.txt
+# Add any new packages here and commit requirements.txt.
+fastapi
+uvicorn[standard]
+psycopg[binary]          # psycopg v3 — Tiger Data connection driver
+python-dotenv
+google-genai             # official Gemini SDK
+pydantic
+slowapi                  # rate limiting for /heartbeat
+passlib[bcrypt]          # token hashing
+httpx                    # async HTTP client for GitHub API calls in Phase 4

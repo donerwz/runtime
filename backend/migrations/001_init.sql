@@ -1,0 +1,60 @@
+-- DEV A — Phase 1
+-- Run this migration against Tiger Data (Postgres + TimescaleDB).
+-- Migration runner: see seed/run_migrations.py (create that file in Phase 1).
+--
+-- TODO: Create the following tables in order:
+--
+-- 1. users
+--    id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
+--    name            TEXT NOT NULL
+--    role            TEXT NOT NULL CHECK (role IN ('volunteer', 'supervisor'))
+--    supervisor_id   UUID REFERENCES users(id)   -- NULL for supervisors
+--    api_token_hash  TEXT NOT NULL
+--
+-- 2. cohorts
+--    id              UUID PRIMARY KEY DEFAULT gen_random_uuid()
+--    supervisor_id   UUID NOT NULL REFERENCES users(id)
+--    name            TEXT NOT NULL
+--
+-- 3. cohort_members
+--    cohort_id       UUID REFERENCES cohorts(id)
+--    user_id         UUID REFERENCES users(id)
+--    PRIMARY KEY (cohort_id, user_id)
+--
+-- 4. heartbeats  ← convert to TimescaleDB hypertable on 'ts'
+--    ts              TIMESTAMPTZ NOT NULL
+--    user_id         UUID NOT NULL REFERENCES users(id)
+--    project         TEXT NOT NULL
+--    language        TEXT NOT NULL
+--    file_ext        TEXT NOT NULL
+--    focused         BOOLEAN NOT NULL
+--    (no surrogate key — TimescaleDB hypertable, ts is the partitioning column)
+--
+--    After CREATE TABLE:
+--      SELECT create_hypertable('heartbeats', 'ts');
+--
+-- 5. shifts
+--    user_id             UUID REFERENCES users(id)
+--    date                DATE NOT NULL
+--    tracked_minutes     INT NOT NULL DEFAULT 0
+--    approved_minutes    INT
+--    status              TEXT NOT NULL DEFAULT 'pending'
+--                        CHECK (status IN ('pending', 'approved', 'adjusted'))
+--    PRIMARY KEY (user_id, date)
+--
+-- 6. daily_assessments
+--    user_id     UUID REFERENCES users(id)
+--    date        DATE NOT NULL
+--    scores      JSONB         -- the full AssessmentResult JSON from Gemini
+--    summary     TEXT          -- weekly synthesis text
+--    evidence    JSONB
+--    created_at  TIMESTAMPTZ DEFAULT now()
+--    PRIMARY KEY (user_id, date)
+--
+-- 7. CREATE OR REPLACE FUNCTION tracked_minutes_per_day(p_user_id UUID, p_from DATE, p_to DATE)
+--    Logic: for each consecutive pair of heartbeats within the same day,
+--    add the gap in minutes, capping each gap at 2 minutes (longer = idle).
+--    Sum per day. Return table(date DATE, tracked_minutes INT).
+--
+-- Acceptance: run seed/seed.py, then call tracked_minutes_per_day() and verify
+-- the numbers look plausible (a student who worked 3h shows ~180 min).

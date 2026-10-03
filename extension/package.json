@@ -1,0 +1,39 @@
+{
+  "name": "volunteer-tracker",
+  "displayName": "Volunteer Hours Tracker",
+  "description": "Tracks coding activity and sends heartbeats to the Volunteer Hours API",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "volunteerTracker.setToken",
+        "title": "Volunteer Tracker: Set API Token"
+      }
+    ],
+    "configuration": {
+      "title": "Volunteer Tracker",
+      "properties": {
+        "volunteerTracker.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "DEV B: URL of the FastAPI backend (change for prod)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
