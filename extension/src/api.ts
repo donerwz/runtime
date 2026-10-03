@@ -1,26 +1,52 @@
-// DEV B — Phase 3
-// HTTP client for the FastAPI backend. Read api-contract.md for endpoint shapes.
-//
-// TODO:
-//   Use the built-in fetch API (Node 18+ / VS Code's environment has it).
-//   Read the server URL from vscode.workspace.getConfiguration("runtime").serverUrl.
-//
-//   postHeartbeat(token: string, payload: HeartbeatPayload): Promise<void>
-//     POST <serverUrl>/heartbeat
-//     Headers: Authorization: Bearer <token>, Content-Type: application/json
-//     Body: JSON.stringify(payload)
-//     Throw on non-2xx so tracker.ts can catch and log.
-//
-//   getTodayMinutes(token: string, userId: string): Promise<number>
-//     GET <serverUrl>/hours?user_id=<userId>&from=<today>&to=<today>
-//     Return the tracked_minutes for today, or 0 if the list is empty.
-//
-// Types (must match api-contract.md — app_name is now the primary identifier):
-//   interface HeartbeatPayload {
-//     app_name:   string;         // always "Visual Studio Code"
-//     app_bundle: string;         // always "com.microsoft.VSCode"
-//     focused:    boolean;
-//     project:    string | null;  // workspace folder name
-//     language:   string | null;  // language id
-//     file_ext:   string | null;  // file extension
-//   }
+import * as vscode from 'vscode';
+
+export interface HeartbeatPayload {
+    app_name: string;
+    app_bundle: string | null;
+    focused: boolean;
+    project: string | null;
+    language: string | null;
+    file_ext: string | null;
+}
+
+interface DailyHours {
+    date: string;
+    tracked_minutes: number;
+}
+
+function serverUrl(): string {
+    return vscode.workspace.getConfiguration('runtime')
+        .get<string>('serverUrl', 'http://localhost:8000').replace(/\/$/, '');
+}
+
+export class ApiClient {
+    static async postHeartbeat(token: string, payload: HeartbeatPayload): Promise<void> {
+        const response = await fetch(`${serverUrl()}/heartbeat`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Heartbeat request failed (${response.status})`);
+        }
+    }
+
+    static async getTodayMinutes(token: string, userId: string): Promise<number> {
+        const today = new Date().toISOString().slice(0, 10);
+        const query = new URLSearchParams({ user_id: userId, from: today, to: today });
+        const response = await fetch(`${serverUrl()}/hours?${query}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Hours request failed (${response.status})`);
+        }
+
+        const rows = await response.json() as DailyHours[];
+        return rows[0]?.tracked_minutes ?? 0;
+    }
+}
