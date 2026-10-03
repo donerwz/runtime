@@ -1,20 +1,37 @@
-# DEV B — Phase 3
-# HTTP client for the Runtime backend. Read api-contract.md for shapes.
-#
-# TODO:
-#   Class ApiClient:
-#
-#   __init__(config: Config):
-#     Store config reference. Create an httpx.Client (sync — runs in the tracker thread).
-#
-#   post_heartbeat(app_name: str, app_bundle: str, focused: bool) -> None:
-#     POST <config.server_url>/heartbeat
-#     Headers: Authorization: Bearer <config.token>
-#     Body: { "app_name": app_name, "app_bundle": app_bundle, "focused": focused }
-#     Raise on non-2xx so tracker.py can catch and log.
-#
-#   get_today_minutes() -> int:
-#     Needs user_id — read it from config (store it after first successful heartbeat,
-#     or add a GET /me endpoint to Dev A's TODO list).
-#     GET <config.server_url>/hours?user_id=...&from=<today>&to=<today>
-#     Return tracked_minutes for today, or 0 on any error.
+from datetime import date
+import httpx
+from agent.config import Config
+
+
+class ApiClient:
+    def __init__(self, config: Config):
+        self.config = config
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Bearer {self.config.token}"}
+
+    def post_heartbeat(self, app_name: str, app_bundle: str | None, focused: bool) -> None:
+        with httpx.Client(timeout=5) as client:
+            r = client.post(
+                f"{self.config.server_url}/heartbeat",
+                json={"app_name": app_name, "app_bundle": app_bundle, "focused": focused},
+                headers=self._headers(),
+            )
+            r.raise_for_status()
+
+    def get_today_minutes(self) -> int:
+        if not self.config.token:
+            return 0
+        today = date.today().isoformat()
+        try:
+            with httpx.Client(timeout=5) as client:
+                r = client.get(
+                    f"{self.config.server_url}/hours",
+                    params={"from_": today, "to": today},
+                    headers=self._headers(),
+                )
+                r.raise_for_status()
+                rows = r.json()
+                return rows[0]["tracked_minutes"] if rows else 0
+        except Exception:
+            return 0

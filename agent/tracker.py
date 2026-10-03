@@ -1,24 +1,59 @@
-# DEV B — Phase 3
-# Polls the active macOS application and sends heartbeats to the Runtime backend.
-#
-# TODO:
-#   Class Tracker (runs in a background thread)
-#
-#   __init__(config: Config, api: ApiClient):
-#     Store config and api. Set self.paused = False, self._last_sent = 0.
-#
-#   run():
-#     Loop every 5 seconds (polling interval):
-#       - If paused: skip.
-#       - Get the frontmost app using pyobjc:
-#           ws = AppKit.NSWorkspace.sharedWorkspace()
-#           app = ws.frontmostApplication()
-#           app_name   = app.localizedName()      # e.g. "Figma"
-#           app_bundle = app.bundleIdentifier()   # e.g. "com.figma.Desktop"
-#       - If app_name is not in config.tracked_apps: skip.
-#       - If fewer than 30 seconds since last heartbeat: skip (throttle).
-#       - Call api.post_heartbeat(app_name, app_bundle, focused=True).
-#       - Update self._last_sent.
-#       - On any exception: print to stderr and continue (never crash the loop).
-#
-#   toggle_pause(): flips self.paused; called from tray.py.
+import sys
+import time
+import threading
+from agent.config import Config
+from agent.api import ApiClient
+
+
+class Tracker(threading.Thread):
+    def __init__(self, config: Config, api: ApiClient):
+        super().__init__(daemon=True)
+        self.config = config
+        self.api = api
+        self.paused = False
+        self._last_sent = 0.0
+        self._running = True
+
+    def run(self):
+        while self._running:
+            if not self.paused:
+                app_name, app_bundle = self._get_active_app()
+                if app_name and app_name in self.config.tracked_apps:
+                    now = time.monotonic()
+                    if now - self._last_sent >= 30:
+                        try:
+                            self.api.post_heartbeat(app_name, app_bundle, focused=True)
+                            self._last_sent = now
+                        except Exception as e:
+                            print(f"[runtime] heartbeat error: {e}", file=sys.stderr)
+            time.sleep(5)
+
+    def _get_active_app(self) -> tuple[str | None, str | None]:
+        if sys.platform == "darwin":
+            return self._active_mac()
+        return self._active_win()
+
+    def _active_mac(self) -> tuple[str | None, str | None]:
+        try:
+            import AppKit
+            ws = AppKit.NSWorkspace.sharedWorkspace()
+            app = ws.frontmostApplication()
+            return app.localizedName(), app.bundleIdentifier()
+        except Exception:
+            return None, None
+
+    def _active_win(self) -> tuple[str | None, str | None]:
+        try:
+            import win32gui, win32process, psutil
+            hwnd = win32gui.GetForegroundWindow()
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            name = psutil.Process(pid).name().removesuffix(".exe")
+            return name, None
+        except Exception:
+            return None, None
+
+    def toggle_pause(self):
+        self.paused = not self.paused
+
+    def stop(self):
+        self._running = False

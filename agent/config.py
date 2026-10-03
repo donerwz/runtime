@@ -1,28 +1,42 @@
-# DEV B — Phase 3
-# Reads and writes the agent's local config from ~/.runtime/config.json.
-#
-# Config file shape:
-#   {
-#     "token":        "raw bearer token",
-#     "server_url":   "http://localhost:8000",
-#     "tracked_apps": ["Figma", "Visual Studio Code", "Xcode"]
-#   }
-#
-# TODO:
-#   Class Config:
-#
-#   __init__():
-#     Set CONFIG_PATH = Path.home() / ".runtime" / "config.json".
-#     Create the directory if it doesn't exist.
-#     Call self.load().
-#
-#   load():
-#     If CONFIG_PATH exists: parse JSON into self.token, self.server_url, self.tracked_apps.
-#     Else: set defaults (token="", server_url="http://localhost:8000", tracked_apps=[]).
-#
-#   save():
-#     Write current values back to CONFIG_PATH as pretty JSON.
-#
-#   add_app(name: str): add to tracked_apps if not already present, then save().
-#   remove_app(name: str): remove from tracked_apps, then save().
-#   toggle_app(name: str): add if absent, remove if present, then save().
+import json
+from pathlib import Path
+
+_CONFIG_PATH = Path.home() / ".runtime" / "config.json"
+
+class Config:
+    def __init__(self):
+        _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        self.token: str = ""
+        self.server_url: str = "http://localhost:8000"
+        self.tracked_apps: list[str] = []
+        self.load()
+
+    def load(self):
+        if _CONFIG_PATH.exists():
+            data = json.loads(_CONFIG_PATH.read_text())
+            self.token = data.get("token", "")
+            self.server_url = data.get("server_url", "http://localhost:8000")
+            self.tracked_apps = data.get("tracked_apps", [])
+
+    def save(self):
+        _CONFIG_PATH.write_text(json.dumps({
+            "token": self.token,
+            "server_url": self.server_url,
+            "tracked_apps": self.tracked_apps,
+        }, indent=2))
+
+    def add_app(self, name: str):
+        if name not in self.tracked_apps:
+            self.tracked_apps.append(name)
+            self.save()
+
+    def remove_app(self, name: str):
+        if name in self.tracked_apps:
+            self.tracked_apps.remove(name)
+            self.save()
+
+    def toggle_app(self, name: str):
+        if name in self.tracked_apps:
+            self.remove_app(name)
+        else:
+            self.add_app(name)

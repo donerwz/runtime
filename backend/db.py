@@ -1,13 +1,25 @@
-# DEV A — Phase 0 / Phase 1
-# Database connection pool using psycopg v3 (async).
-#
-# TODO:
-#   1. Read DATABASE_URL from environment (use python-dotenv).
-#   2. Create an async connection pool with psycopg.AsyncConnectionPool.
-#   3. Expose a get_conn() async context manager that routers can use:
-#        async with get_conn() as conn:
-#            await conn.execute(...)
-#   4. Add a lifespan handler in main.py to open/close the pool on startup/shutdown.
-#
-# Tiger Data note: the connection string is a standard Postgres DSN.
-# No special driver needed — psycopg v3 works as-is.
+import os
+from contextlib import asynccontextmanager
+import psycopg_pool
+from psycopg.rows import dict_row
+
+_pool: psycopg_pool.AsyncConnectionPool | None = None
+
+async def open_pool():
+    global _pool
+    _pool = psycopg_pool.AsyncConnectionPool(
+        conninfo=os.environ["DATABASE_URL"],
+        min_size=2,
+        max_size=10,
+        open=False,
+    )
+    await _pool.open(wait=True)
+
+async def close_pool():
+    if _pool:
+        await _pool.close()
+
+@asynccontextmanager
+async def get_conn():
+    async with _pool.connection() as conn:
+        yield conn

@@ -1,18 +1,32 @@
-# DEV A — Phase 2
-# POST /heartbeat endpoint.
-#
-# TODO:
-#   1. Create an APIRouter with prefix="/heartbeat".
-#   2. POST / handler:
-#      - Depend on get_current_user() from auth.py (raises 401 if bad token).
-#      - Validate the body against HeartbeatIn from models.py.
-#      - Reject any unknown extra fields (use model_config = {"extra": "forbid"}).
-#      - Insert a row into the heartbeats hypertable:
-#          (ts=now() UTC, user_id, app_name, app_bundle, focused, project, language, file_ext)
-#        All fields except app_name, focused, user_id, ts may be NULL.
-#      - Return 201 {}.
-#   3. Apply slowapi rate limit: 1 request per 30 seconds per user_id.
-#
-# Acceptance: curl -X POST /heartbeat with a valid token → row in DB.
-#             Same token twice within 30s → 429.
-#             Invalid token → 401.
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from psycopg.rows import dict_row
+
+from backend.auth import get_current_user
+from backend.db import get_conn
+from backend.models import HeartbeatIn
+
+router = APIRouter(prefix="/heartbeat")
+limiter = Limiter(key_func=get_remote_address)
+
+
+@router.post("", status_code=201)
+@limiter.limit("2/minute")
+async def post_heartbeat(
+    request: Request,
+    body: HeartbeatIn,
+    user: dict = Depends(get_current_user),
+):
+    now = datetime.now(timezone.utc)
+    async with get_conn() as conn:
+        await conn.execute(
+            """
+            INSERT INTO heartbeats (ts, user_id, app_name, app_bundle, focused, project, language, file_ext)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (now, user["id"], body.app_name, body.app_bundle,
+             body.focused, body.project, body.language, body.file_ext),
+        )
+    return {}

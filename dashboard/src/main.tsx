@@ -1,24 +1,27 @@
-// DEV C — Phase 5
-// App entry point. Sets up React Router with all pages.
-//
-// TODO:
-//   1. Wrap the app in a React Router <BrowserRouter>.
-//   2. Define routes:
-//        /            → <Login />
-//        /cohort      → <CohortView />  (protected — redirect to / if no token)
-//        /student/:id → <StudentPage />
-//        /shifts      → <ShiftApproval />
-//        /digest      → <WeeklyDigest />
-//   3. Store the supervisor token in localStorage under "tracker_token".
-//      A simple ProtectedRoute wrapper that checks localStorage is enough for the demo.
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import CohortView from './pages/CohortView';
+import StudentPage from './pages/StudentPage';
+import ShiftApproval from './pages/ShiftApproval';
+import WeeklyDigest from './pages/WeeklyDigest';
 
-// TODO: implement routing as described above
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('tracker_token');
+  return token ? <>{children}</> : <Navigate to="/" replace />;
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {/* TODO: add router and routes */}
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/cohort" element={<ProtectedRoute><CohortView /></ProtectedRoute>} />
+        <Route path="/student/:id" element={<ProtectedRoute><StudentPage /></ProtectedRoute>} />
+        <Route path="/shifts" element={<ProtectedRoute><ShiftApproval /></ProtectedRoute>} />
+        <Route path="/digest" element={<ProtectedRoute><WeeklyDigest /></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );

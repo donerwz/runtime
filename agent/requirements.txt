@@ -1,6 +1,15 @@
-# DEV B — install with: pip install -r requirements.txt
-# macOS only.
-rumps                    # system tray icon + menu
-pyobjc-framework-Cocoa   # NSWorkspace for active app detection
-httpx                    # HTTP client for heartbeat POST
+# Install with: pip install -r requirements.txt
+
+# Shared
+httpx
 python-dotenv
+psutil
+
+# macOS only
+rumps; sys_platform == "darwin"
+pyobjc-framework-Cocoa; sys_platform == "darwin"
+
+# Windows only
+pystray; sys_platform == "win32"
+Pillow; sys_platform == "win32"
+pywin32; sys_platform == "win32"

@@ -1,13 +1,27 @@
-# DEV A — Phase 2
-# GET /hours endpoint.
-#
-# TODO:
-#   1. Create an APIRouter with prefix="/hours".
-#   2. GET / handler with query params: user_id (UUID), from (date), to (date).
-#      - Depend on get_current_user() — any authenticated user can query.
-#      - Call the SQL view/function from migrations/001_init.sql that computes
-#        tracked minutes per user per day (gap-capped at 2 min).
-#      - Return list[DailyHours] from models.py.
-#   3. Return an empty list (not 404) if no data exists for the range.
-#
-# See migrations/001_init.sql for the hours computation logic.
+from datetime import date
+from uuid import UUID
+from fastapi import APIRouter, Depends
+from psycopg.rows import dict_row
+
+from backend.auth import get_current_user
+from backend.db import get_conn
+from backend.models import DailyHours
+
+router = APIRouter(prefix="/hours")
+
+
+@router.get("", response_model=list[DailyHours])
+async def get_hours(
+    user_id: UUID,
+    from_: date,
+    to: date,
+    _user: dict = Depends(get_current_user),
+):
+    async with get_conn() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                "SELECT date, tracked_minutes FROM tracked_minutes_per_day(%s, %s, %s)",
+                (str(user_id), from_, to),
+            )
+            rows = await cur.fetchall()
+    return rows
