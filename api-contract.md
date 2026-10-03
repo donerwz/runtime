@@ -18,18 +18,23 @@ GET /health
 
 ---
 
-## Heartbeat (used by Dev B — VS Code extension)
+## Heartbeat (used by Dev B — desktop agent)
+
+Sent by the system tray agent whenever a tracked app is in the foreground.
+The VS Code extension (if still used) sends the optional coding fields too.
 
 ```
 POST /heartbeat
-Authorization: Bearer <volunteer_token>
+Authorization: Bearer <user_token>
 
 Body:
 {
-  "project":   string,   // workspace folder name
-  "language":  string,   // VS Code language id (e.g. "python")
-  "file_ext":  string,   // e.g. ".py"
-  "focused":   boolean   // true if VS Code window has focus
+  "app_name":   string,            // e.g. "Figma", "Visual Studio Code"
+  "app_bundle": string | null,     // macOS bundle ID, e.g. "com.figma.Desktop"
+  "focused":    boolean,           // true if the app window has OS focus
+  "project":    string | null,     // VS Code only: workspace folder name
+  "language":   string | null,     // VS Code only: language id
+  "file_ext":   string | null      // VS Code only: e.g. ".py"
 }
 
 → 201 {}

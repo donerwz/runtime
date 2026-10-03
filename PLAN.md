@@ -1,4 +1,4 @@
-# Volunteer Hours Tracker: Build Plan for Claude Code
+# Runtime: Build Plan for Claude Code
 
 Hackathon: StormHacks 2026. Target prize: Best Use of Gemini API.
 Machine: macOS. Editor: VS Code. Database: Tiger Data (Postgres + TimescaleDB).

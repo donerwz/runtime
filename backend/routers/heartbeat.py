@@ -8,7 +8,8 @@
 #      - Validate the body against HeartbeatIn from models.py.
 #      - Reject any unknown extra fields (use model_config = {"extra": "forbid"}).
 #      - Insert a row into the heartbeats hypertable:
-#          (ts=now() UTC, user_id, project, language, file_ext, focused)
+#          (ts=now() UTC, user_id, app_name, app_bundle, focused, project, language, file_ext)
+#        All fields except app_name, focused, user_id, ts may be NULL.
 #      - Return 201 {}.
 #   3. Apply slowapi rate limit: 1 request per 30 seconds per user_id.
 #

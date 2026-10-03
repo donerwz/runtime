@@ -1,0 +1,6 @@
+# DEV B — install with: pip install -r requirements.txt
+# macOS only (rumps + pyobjc). For Windows/Linux see notes in tracker.py.
+rumps          # macOS system tray icon + menu
+pyobjc-framework-Cocoa   # NSWorkspace for active app detection
+httpx          # async HTTP client for heartbeat POST
+python-dotenv

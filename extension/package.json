@@ -1,7 +1,7 @@
 {
-  "name": "volunteer-tracker",
-  "displayName": "Volunteer Hours Tracker",
-  "description": "Tracks coding activity and sends heartbeats to the Volunteer Hours API",
+  "name": "runtime",
+  "displayName": "Runtime",
+  "description": "Tracks coding activity and sends heartbeats to the Runtime API",
   "version": "0.0.1",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
@@ -10,14 +10,14 @@
   "contributes": {
     "commands": [
       {
-        "command": "volunteerTracker.setToken",
-        "title": "Volunteer Tracker: Set API Token"
+        "command": "runtime.setToken",
+        "title": "Runtime: Set API Token"
       }
     ],
     "configuration": {
-      "title": "Volunteer Tracker",
+      "title": "Runtime",
       "properties": {
-        "volunteerTracker.serverUrl": {
+        "runtime.serverUrl": {
           "type": "string",
           "default": "http://localhost:8000",
           "description": "DEV B: URL of the FastAPI backend (change for prod)"

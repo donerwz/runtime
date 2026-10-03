@@ -1,5 +1,7 @@
-// DEV B — Phase 3
-// Heartbeat throttle logic. This is the core of the extension.
+// DEV B — Phase 3 (OPTIONAL — use the desktop agent instead for most users)
+// VS Code-specific heartbeat tracker. Sends richer coding signals than the agent
+// (language, file extension, project name). Use alongside the agent OR as a
+// standalone fallback if the user only wants to track VS Code.
 //
 // TODO:
 //   Class Tracker

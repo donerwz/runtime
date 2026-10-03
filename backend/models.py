@@ -5,10 +5,12 @@
 # TODO: Define the following Pydantic BaseModel classes:
 #
 #   HeartbeatIn:
-#     project: str
-#     language: str
-#     file_ext: str
-#     focused: bool
+#     app_name:   str              # required — e.g. "Figma", "Visual Studio Code"
+#     app_bundle: str | None       # macOS bundle ID; None from non-macOS agents
+#     focused:    bool
+#     project:    str | None       # VS Code only: workspace folder name
+#     language:   str | None       # VS Code only: language id
+#     file_ext:   str | None       # VS Code only: file extension
 #
 #   DailyHours:
 #     date: date

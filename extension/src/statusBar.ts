@@ -6,7 +6,7 @@
 //
 //   constructor(tracker: Tracker):
 //     - Create a vscode.StatusBarItem (alignment: Left, priority: 100).
-//     - Set command to "volunteerTracker.togglePause" (register this command here).
+//     - Set command to "runtime.togglePause" (register this command here).
 //     - Show the item.
 //
 //   update(todayMinutes: number):

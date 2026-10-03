@@ -24,10 +24,12 @@
 -- 4. heartbeats  ← convert to TimescaleDB hypertable on 'ts'
 --    ts              TIMESTAMPTZ NOT NULL
 --    user_id         UUID NOT NULL REFERENCES users(id)
---    project         TEXT NOT NULL
---    language        TEXT NOT NULL
---    file_ext        TEXT NOT NULL
+--    app_name        TEXT NOT NULL          -- e.g. "Figma", "Visual Studio Code"
+--    app_bundle      TEXT                   -- macOS bundle ID; nullable
 --    focused         BOOLEAN NOT NULL
+--    project         TEXT                   -- VS Code only; nullable
+--    language        TEXT                   -- VS Code only; nullable
+--    file_ext        TEXT                   -- VS Code only; nullable
 --    (no surrogate key — TimescaleDB hypertable, ts is the partitioning column)
 --
 --    After CREATE TABLE:
