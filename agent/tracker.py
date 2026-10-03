@@ -22,7 +22,3 @@
 #       - On any exception: print to stderr and continue (never crash the loop).
 #
 #   toggle_pause(): flips self.paused; called from tray.py.
-#
-# Cross-platform note (if needed later):
-#   Windows: use ctypes + GetForegroundWindow() + GetWindowText()
-#   Linux:   subprocess xdotool getactivewindow getwindowname
