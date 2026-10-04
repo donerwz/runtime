@@ -33,6 +33,7 @@ class RuntimeTrayApp:
         self.config = config
         self.api = api
         self._today_min = 0
+        self._total_min = 0
         self._icon: pystray.Icon | None = None
 
     def run(self):
@@ -50,6 +51,7 @@ class RuntimeTrayApp:
     def _build_menu(self):
         items = [
             pystray.MenuItem(f"Today: {self._today_min} min", None, enabled=False),
+            pystray.MenuItem(f"Total: {self._total_min} min", None, enabled=False),
             pystray.Menu.SEPARATOR,
         ]
         for name in _running_apps():
@@ -107,5 +109,6 @@ class RuntimeTrayApp:
         while True:
             time.sleep(60)
             self._today_min = self.api.get_today_minutes()
+            self._total_min = self.api.get_total_minutes()
             if self._icon:
                 self._icon.update_menu()

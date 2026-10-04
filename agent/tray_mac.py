@@ -6,7 +6,9 @@ from agent.tracker import Tracker
 
 class RuntimeTrayApp(rumps.App):
     def __init__(self, tracker: Tracker, config: Config, api: ApiClient):
-        super().__init__("⏱", quit_button="Quit Runtime")
+        import os
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+        super().__init__("Runtime", icon=icon_path, quit_button="Quit Runtime", template=True)
         self.tracker = tracker
         self.config = config
         self.api = api
@@ -21,6 +23,7 @@ class RuntimeTrayApp(rumps.App):
         self.menu.clear()
         self.menu = [
             rumps.MenuItem("Today: — min"),
+            rumps.MenuItem("Total: — min"),
             None,
             *self._app_items(),
             None,
@@ -85,8 +88,13 @@ class RuntimeTrayApp(rumps.App):
 
     @rumps.timer(60)
     def _update_minutes(self, _):
-        minutes = self.api.get_today_minutes()
+        today = self.api.get_today_minutes()
+        total = self.api.get_total_minutes()
         try:
-            self.menu["Today: — min"].title = f"Today: {minutes} min"
+            self.menu["Today: — min"].title = f"Today: {today} min"
+        except KeyError:
+            pass
+        try:
+            self.menu["Total: — min"].title = f"Total: {total} min"
         except KeyError:
             pass

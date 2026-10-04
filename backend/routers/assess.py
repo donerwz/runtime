@@ -1,7 +1,9 @@
+import json
 import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 from backend.auth import require_supervisor
+from backend.db import get_conn
 
 router = APIRouter(prefix="/assess")
 
@@ -11,9 +13,31 @@ _jobs: dict[str, dict] = {}
 
 async def _run_assessment(job_id: str, user_id: str, date: str):
     try:
-        # TODO: Phase 4 — replace with gemini.assess_day(user_id, date)
         from backend.gemini import assess_day
         result = await assess_day(user_id, date)
+
+        scores = {
+            "progress": result["progress"],
+            "difficulty_handled": result["difficulty_handled"],
+            "collaboration": result["collaboration"],
+            "consistency": result["consistency"],
+        }
+        summary = "; ".join(result.get("highlights", [])) or None
+
+        async with get_conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO daily_assessments (user_id, date, scores, summary, evidence)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, date) DO UPDATE
+                        SET scores   = EXCLUDED.scores,
+                            summary  = EXCLUDED.summary,
+                            evidence = EXCLUDED.evidence
+                    """,
+                    (user_id, date, json.dumps(scores), summary, json.dumps(result["evidence"])),
+                )
+
         _jobs[job_id] = {"status": "done", "result": result}
     except Exception as e:
         _jobs[job_id] = {"status": "error", "detail": str(e)}
