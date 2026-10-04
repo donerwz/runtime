@@ -35,3 +35,19 @@ class ApiClient:
                 return rows[0]["tracked_minutes"] if rows else 0
         except Exception:
             return 0
+
+    def get_total_minutes(self) -> int:
+        if not self.config.token:
+            return 0
+        try:
+            with httpx.Client(timeout=5) as client:
+                r = client.get(
+                    f"{self.config.server_url}/hours",
+                    params={"from_": "2000-01-01", "to": date.today().isoformat()},
+                    headers=self._headers(),
+                )
+                r.raise_for_status()
+                rows = r.json()
+                return sum(row["tracked_minutes"] for row in rows)
+        except Exception:
+            return 0

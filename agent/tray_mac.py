@@ -23,6 +23,7 @@ class RuntimeTrayApp(rumps.App):
         self.menu.clear()
         self.menu = [
             rumps.MenuItem("Today: — min"),
+            rumps.MenuItem("Total: — min"),
             None,
             *self._app_items(),
             None,
@@ -87,8 +88,13 @@ class RuntimeTrayApp(rumps.App):
 
     @rumps.timer(60)
     def _update_minutes(self, _):
-        minutes = self.api.get_today_minutes()
+        today = self.api.get_today_minutes()
+        total = self.api.get_total_minutes()
         try:
-            self.menu["Today: — min"].title = f"Today: {minutes} min"
+            self.menu["Today: — min"].title = f"Today: {today} min"
+        except KeyError:
+            pass
+        try:
+            self.menu["Total: — min"].title = f"Total: {total} min"
         except KeyError:
             pass
