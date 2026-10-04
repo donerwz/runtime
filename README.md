@@ -1,6 +1,6 @@
 # Runtime
 
-<img src="runtimelogo.png">
+<img src="images/runtimelogo.png">
 
 A web application that helps people working on volunteer hours track their time conveniently and easily.
 
