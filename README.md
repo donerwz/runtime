@@ -4,5 +4,8 @@
 
 <h3>Tools Used
 <ul>
-    <li><p>Tiger Data
-    <li><p>Gemini API
+    <li>Tiger Data
+    <li>Gemini API
+
+<h3>How to Connect Your Own API Keys
+<p>To add your own API keys to run this by yourself, create a copy of `.env.example` using `cp .env.example .env` and insert your keys where it's said.
