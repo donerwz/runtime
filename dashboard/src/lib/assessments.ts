@@ -6,7 +6,7 @@
 // the student page is built from results this dashboard has generated, kept here
 // so the chart survives reloads and accumulates through a demo session.
 
-import type { AssessmentResult } from '../api/client';
+import type { AssessmentRecord, AssessmentResult } from '../api/client';
 
 export interface CachedAssessment extends AssessmentResult {
   date: string;
@@ -105,4 +105,65 @@ export function clearAllAssessments(): void {
   } catch {
     /* ignore */
   }
+}
+
+const DIMENSIONS = [
+  'progress',
+  'difficulty_handled',
+  'collaboration',
+  'consistency',
+] as const;
+
+/**
+ * Merge server history with anything cached locally.
+ *
+ * daily_assessments has no blockers/highlights columns, so a stored row can
+ * only ever carry scores, summary and evidence. Results this browser triggered
+ * live do have the full shape, so when the two describe the same date we keep
+ * the richer local copy. Server rows win for scores, since they are the
+ * canonical record.
+ */
+export function mergeAssessments(
+  records: AssessmentRecord[],
+  cached: CachedAssessment[]
+): CachedAssessment[] {
+  const local = new Map(cached.map((c) => [c.date, c]));
+
+  const merged = records.map<AssessmentResult & { date: string }>((r) => {
+    const prior = local.get(r.date);
+    const scores = r.scores ?? {};
+
+    // Be tolerant of a partially-populated scores object rather than rendering
+    // NaN gaps in the chart.
+    const pick = (key: (typeof DIMENSIONS)[number]): number =>
+      typeof scores[key] === 'number' ? scores[key] : 0;
+
+    return {
+      date: r.date,
+      progress: pick('progress'),
+      difficulty_handled: pick('difficulty_handled'),
+      collaboration: pick('collaboration'),
+      consistency: pick('consistency'),
+      blockers: prior?.blockers ?? [],
+      highlights: prior?.highlights ?? [],
+      evidence: r.evidence?.length ? r.evidence : (prior?.evidence ?? []),
+    };
+  });
+
+  // Keep any locally-cached date the server has not returned yet (e.g. an
+  // assessment just triggered, before it is visible via the API).
+  for (const c of cached) {
+    if (!merged.some((m) => m.date === c.date)) merged.push(c);
+  }
+
+  return merged.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function toScorePoints(rows: CachedAssessment[]): ScorePoint[] {
+  return scorePointsFor(rows);
+}
+
+/** Convert server records straight to chart points, ignoring the local cache. */
+export function pointsFromRecords(records: AssessmentRecord[]): ScorePoint[] {
+  return scorePointsFor(mergeAssessments(records, []));
 }

@@ -49,6 +49,14 @@ export interface WeeklySynthesisResult {
   summary: string;
 }
 
+/** A stored daily_assessments row, from GET /assessments. */
+export interface AssessmentRecord {
+  date: string;
+  scores: Record<string, number>;
+  summary: string | null;
+  evidence: Array<{ score_key: string; citation: string }>;
+}
+
 export interface Shift {
   date: string;
   tracked_minutes: number;
@@ -137,6 +145,19 @@ export async function getHours(userId: string, from: string, to: string): Promis
 
 export async function triggerAssessment(userId: string, date: string): Promise<{ job_id: string }> {
   return req(getToken(), `/assess/${userId}/${date}`, { method: 'POST' });
+}
+
+/**
+ * Stored assessments for a user. Added alongside the api-contract endpoints so
+ * the score trend can be rebuilt from history rather than only from results
+ * this browser happens to have triggered. Returns [] when there is no data.
+ */
+export async function getAssessments(
+  userId: string,
+  from: string,
+  to: string
+): Promise<AssessmentRecord[]> {
+  return req(getToken(), `/assessments?user_id=${userId}&from_=${from}&to=${to}`);
 }
 
 export async function pollAssessmentResult(jobId: string): Promise<AssessmentPoll> {

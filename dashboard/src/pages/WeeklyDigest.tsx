@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   errorMessage,
+  getAssessments,
   getStudents,
   isPending,
   pollAssessmentResult,
@@ -10,7 +11,11 @@ import {
   triggerWeeklySynthesis,
 } from '../api/client';
 import Sparkline from '../components/Sparkline';
-import { scorePointsByUser } from '../lib/assessments';
+import {
+  pointsFromRecords,
+  readScorePoints,
+  type ScorePoint,
+} from '../lib/assessments';
 import { addDays, fmtLongDate, mondayOf, todayISO } from '../lib/dates';
 
 const SUPERVISOR_KEY = 'runtime_supervisor_id';
@@ -32,9 +37,10 @@ export default function WeeklyDigest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Names for the per-student section come from the cohort list; the sparkline
-  // data is whatever this browser has cached, since the API cannot list history.
+  // Names for the per-student section come from the cohort list; the scores
+  // come from GET /assessments, falling back to this browser's cache.
   const [students, setStudents] = useState<Array<{ user_id: string; name: string }>>([]);
+  const [pointsByUser, setPointsByUser] = useState<Record<string, ScorePoint[]>>({});
 
   React.useEffect(() => {
     getStudents()
@@ -44,10 +50,32 @@ export default function WeeklyDigest() {
 
   const weekEnd = addDays(weekStart, 6);
 
+  React.useEffect(() => {
+    if (students.length === 0 || !weekStart) return;
+    let cancelled = false;
+
+    void (async () => {
+      const entries = await Promise.all(
+        students.map(async (s) => {
+          try {
+            const records = await getAssessments(s.user_id, weekStart, weekEnd);
+            return [s.user_id, pointsFromRecords(records)] as const;
+          } catch {
+            return [s.user_id, readScorePoints(s.user_id)] as const;
+          }
+        })
+      );
+      if (!cancelled) setPointsByUser(Object.fromEntries(entries));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [students, weekStart, weekEnd]);
+
   const sparkData = useMemo(() => {
-    const byUser = scorePointsByUser(students);
     return students.map((s) => {
-      const inWeek = (byUser[s.user_id] ?? []).filter(
+      const inWeek = (pointsByUser[s.user_id] ?? []).filter(
         (p) => p.date >= weekStart && p.date <= weekEnd
       );
       const means = inWeek.map(
@@ -56,7 +84,7 @@ export default function WeeklyDigest() {
       );
       return { ...s, count: inWeek.length, means };
     });
-  }, [students, weekStart, weekEnd]);
+  }, [students, pointsByUser, weekStart, weekEnd]);
 
   async function generate() {
     const id = supervisorId.trim();
@@ -214,7 +242,7 @@ export default function WeeklyDigest() {
           <h2>This week per student</h2>
           <div className="grow" />
           <span className="hint">
-            Mean of the four rubric scores, from assessments run in this browser
+            Mean of the four rubric scores, from stored assessments
           </span>
         </div>
 
@@ -222,8 +250,8 @@ export default function WeeklyDigest() {
           <div className="empty">No cohort data available.</div>
         ) : sparkData.every((s) => s.count === 0) ? (
           <div className="empty">
-            No cached assessments for this week ({cachedTotal} in range). Run assessments from a
-            student's page to populate this.
+            No stored assessments for this week ({cachedTotal} in range). Run `python -m seed.seed_assessments`
+            or trigger an assessment from a student's page.
           </div>
         ) : (
           <div>

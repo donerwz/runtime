@@ -36,6 +36,18 @@ class AssessmentResult(BaseModel):
     evidence: list[dict]
 
 
+class AssessmentRow(BaseModel):
+    """A stored daily_assessments row, as returned by GET /assessments.
+
+    Lets the dashboard rebuild the score trend from history instead of only
+    from assessments it happens to have triggered in this browser.
+    """
+    date: date
+    scores: dict
+    summary: str | None = None
+    evidence: list[dict] = []
+
+
 class ShiftRow(BaseModel):
     date: date
     tracked_minutes: int

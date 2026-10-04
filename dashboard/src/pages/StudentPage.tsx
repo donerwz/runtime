@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom';
 import {
   errorMessage,
+  getAssessments,
   getHours,
   getStudents,
   isPending,
@@ -16,14 +17,16 @@ import type { DailyHours } from '../api/client';
 import HoursHeatmap from '../components/HoursHeatmap';
 import ScoreChart from '../components/ScoreChart';
 import {
+  mergeAssessments,
   readAssessments,
-  readScorePoints,
   saveAssessment,
+  toScorePoints,
   type CachedAssessment,
 } from '../lib/assessments';
 import { fmtLongDate, lastNDays, todayISO } from '../lib/dates';
 
 const HEATMAP_DAYS = 14;
+const ASSESSMENT_DAYS = 30;
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 120_000;
 
@@ -69,10 +72,11 @@ export default function StudentPage() {
     if (!id) return;
     setLoading(true);
     setError('');
+    const from = lastNDays(HEATMAP_DAYS)[0];
     try {
       const [students, hoursRows] = await Promise.all([
         getStudents(),
-        getHours(id, lastNDays(HEATMAP_DAYS)[0], todayISO()),
+        getHours(id, from, todayISO()),
       ]);
       if (!mounted.current) return;
       setName(students.find((s) => s.user_id === id)?.name ?? '');
@@ -84,12 +88,29 @@ export default function StudentPage() {
     }
   }, [id]);
 
-  useEffect(() => {
-    setAssessments(readAssessments(id));
-    void load();
-  }, [id, load]);
+  /**
+   * Assessment history is fetched separately from the page's main load: it is
+   * supplementary, so a failure here should not blank out the hours heatmap.
+   */
+  const loadAssessments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const records = await getAssessments(id, lastNDays(ASSESSMENT_DAYS)[0], todayISO());
+      if (mounted.current) {
+        setAssessments(mergeAssessments(records, readAssessments(id)));
+      }
+    } catch {
+      // Fall back to whatever this browser has cached rather than showing an error.
+      if (mounted.current) setAssessments(readAssessments(id));
+    }
+  }, [id]);
 
-  const scorePoints = useMemo(() => readScorePoints(id), [assessments, id]);
+  useEffect(() => {
+    void load();
+    void loadAssessments();
+  }, [load, loadAssessments]);
+
+  const scorePoints = useMemo(() => toScorePoints(assessments), [assessments]);
   const latest = assessments.length > 0 ? assessments[assessments.length - 1] : null;
   const [openEvidence, setOpenEvidence] = useState<Record<number, boolean>>({});
 
@@ -108,8 +129,11 @@ export default function StudentPage() {
         if (failed !== null) throw new Error(failed);
         if (!isPending(polled)) {
           if (!isAssessmentResult(polled)) throw new Error('Unexpected assessment payload');
-          const updated = saveAssessment(id, assessDate, polled);
-          if (mounted.current) setAssessments(updated);
+          // Persist to the local cache, then re-read: the backend does not write
+          // results back to daily_assessments, so the cache is the only place
+          // this freshly triggered run will exist.
+          saveAssessment(id, assessDate, polled);
+          await loadAssessments();
           return;
         }
 
@@ -133,7 +157,13 @@ export default function StudentPage() {
           <h1 style={{ marginTop: 8 }}>{name || 'Student'}</h1>
           <p className="sub mono">{id}</p>
         </div>
-        <button type="button" onClick={() => void load()}>
+        <button
+          type="button"
+          onClick={() => {
+            void load();
+            void loadAssessments();
+          }}
+        >
           Refresh
         </button>
       </div>
