@@ -8,7 +8,7 @@ class RuntimeTrayApp(rumps.App):
     def __init__(self, tracker: Tracker, config: Config, api: ApiClient):
         import os
         icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
-        super().__init__("Runtime", icon=icon_path, quit_button="Quit Runtime", template=True)
+        super().__init__("Runtime", icon=icon_path, quit_button=None, template=True)
         self.tracker = tracker
         self.config = config
         self.api = api
@@ -34,6 +34,8 @@ class RuntimeTrayApp(rumps.App):
             None,
             rumps.MenuItem("Set API Token…", callback=self._set_token),
             rumps.MenuItem("Refresh App List", callback=self._refresh),
+            None,
+            rumps.MenuItem("Quit Runtime", callback=rumps.quit_application),
         ]
 
     def _app_items(self) -> list:
