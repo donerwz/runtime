@@ -43,6 +43,29 @@ async def _run_assessment(job_id: str, user_id: str, date: str):
         _jobs[job_id] = {"status": "error", "detail": str(e)}
 
 
+@router.post("/weekly/{week_start}", status_code=202)
+async def weekly_synthesis(
+    week_start: str,
+    background_tasks: BackgroundTasks,
+    supervisor=Depends(require_supervisor),
+):
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "pending"}
+
+    supervisor_id = str(supervisor["id"])
+
+    async def _run():
+        try:
+            from backend.gemini import weekly_synthesis as _synth
+            result = await _synth(supervisor_id, week_start)
+            _jobs[job_id] = {"status": "done", "result": {"summary": result}}
+        except Exception as e:
+            _jobs[job_id] = {"status": "error", "detail": str(e)}
+
+    background_tasks.add_task(_run)
+    return {"job_id": job_id}
+
+
 @router.post("/{user_id}/{date}", status_code=202)
 async def trigger_assessment(
     user_id: str,
@@ -66,25 +89,3 @@ async def get_result(job_id: str):
     if job["status"] == "error":
         return {"status": "error", "detail": job["detail"]}
     return job["result"]
-
-
-@router.post("/weekly/{supervisor_id}/{week_start}", status_code=202)
-async def weekly_synthesis(
-    supervisor_id: str,
-    week_start: str,
-    background_tasks: BackgroundTasks,
-    _supervisor=Depends(require_supervisor),
-):
-    job_id = str(uuid.uuid4())
-    _jobs[job_id] = {"status": "pending"}
-
-    async def _run():
-        try:
-            from backend.gemini import weekly_synthesis as _synth
-            result = await _synth(supervisor_id, week_start)
-            _jobs[job_id] = {"status": "done", "result": {"summary": result}}
-        except Exception as e:
-            _jobs[job_id] = {"status": "error", "detail": str(e)}
-
-    background_tasks.add_task(_run)
-    return {"job_id": job_id}

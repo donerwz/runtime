@@ -103,7 +103,7 @@ export default function WeeklyDigest() {
     setSummary('');
 
     try {
-      const { job_id } = await triggerWeeklySynthesis(id, weekStart);
+      const { job_id } = await triggerWeeklySynthesis(weekStart);
       const deadline = Date.now() + POLL_TIMEOUT_MS;
 
       for (;;) {

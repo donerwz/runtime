@@ -165,10 +165,9 @@ export async function pollAssessmentResult(jobId: string): Promise<AssessmentPol
 }
 
 export async function triggerWeeklySynthesis(
-  supervisorId: string,
   weekStart: string
 ): Promise<{ job_id: string }> {
-  return req(getToken(), `/assess/weekly/${supervisorId}/${weekStart}`, { method: 'POST' });
+  return req(getToken(), `/assess/weekly/${weekStart}`, { method: 'POST' });
 }
 
 export async function getShifts(userId: string, from: string, to: string): Promise<Shift[]> {
