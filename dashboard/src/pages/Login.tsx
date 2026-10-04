@@ -77,7 +77,7 @@ export default function Login() {
           <div>
             <p className="auth-eyebrow">Volunteer program</p>
             <h2 className="auth-headline">
-              See your volunteers&rsquo; tracked hours and get AI-generated feedback on their work
+              See your volunteers&rsquo; tracked hours and get AI-analyzed feedback on their work
             </h2>
             <p className="auth-lede">
               Runtime turns a volunteer&rsquo;s tracked activity into advisory feedback with a
