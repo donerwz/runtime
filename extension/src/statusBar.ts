@@ -1,27 +1,30 @@
-// DEV B — Phase 3
-// Status bar item: shows today's tracked time and toggles pause/resume on click.
-//
-// TODO:
-//   Class TrackerStatusBar
-//
-//   constructor(tracker: Tracker):
-//     - Create a vscode.StatusBarItem (alignment: Left, priority: 100).
-//     - Set command to "runtime.togglePause" (register this command here).
-//     - Show the item.
-//
-//   update(todayMinutes: number):
-//     - If tracker.isPaused: show "$(debug-pause) Tracker paused"
-//     - Else: show "$(clock) Xh Ym" (format todayMinutes as hours + minutes)
-//
-//   startPolling():
-//     - Every 60 seconds, call GET /hours for today and call update() with the result.
-//     - Store the interval handle so it can be cleared in dispose().
-//
-//   dispose(): clean up the status bar item and clear the polling interval.
-
 import * as vscode from 'vscode';
 import { Tracker } from './tracker';
 
-export class TrackerStatusBar {
-    // TODO: implement
+export class TrackerStatusBar implements vscode.Disposable {
+    private readonly item: vscode.StatusBarItem;
+    private readonly command: vscode.Disposable;
+
+    constructor(private readonly tracker: Tracker) {
+        this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+        this.item.command = 'runtime.togglePause';
+        this.command = vscode.commands.registerCommand('runtime.togglePause', () => {
+            this.tracker.togglePause();
+            this.update();
+        });
+        this.update();
+        this.item.show();
+    }
+
+    update(): void {
+        this.item.text = this.tracker.isPaused
+            ? '$(debug-pause) Paused'
+            : '$(clock) Runtime tracking active';
+        this.item.tooltip = 'Click to pause or resume Runtime tracking';
+    }
+
+    dispose(): void {
+        this.command.dispose();
+        this.item.dispose();
+    }
 }
