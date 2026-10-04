@@ -102,6 +102,16 @@ p {
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The wordmark is ~4.8:1, so sizing by height keeps it undistorted. */
+.brand-logo {
+  display: block;
+  height: 19px;
+  width: auto;
 }
 
 .topnav .brand span {
@@ -374,6 +384,39 @@ tr.row-pending:hover td {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Scrollable clipped region ---------- */
+
+.scroll-region {
+  position: relative;
+}
+
+.scroll-region-inner {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Sits over the bottom edge only while there is more content below, so it never
+   appears on a list that already fits. Pointer-events off so it cannot block
+   scrolling over the cut-off row. */
+.scroll-region-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52px;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--surface) 12%, rgba(255, 255, 255, 0));
+}
+
+.card-foot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 /* ---------- Badges ---------- */
 
 .badge {
@@ -453,13 +496,13 @@ tr.row-pending:hover td {
   max-width: 420px;
 }
 
-/* The brand wordmark takes the larger relative increase (+30%) while the form
-   around it grows modestly (+10%), per the sizing brief. */
+/* The login wordmark uses the logo image at a larger size than the nav bar. */
 .auth-form .brand {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
   margin-bottom: 6px;
+}
+
+.auth-form .brand-logo {
+  height: 42px;
 }
 
 .auth-form .tagline {
@@ -504,17 +547,40 @@ tr.row-pending:hover td {
 
 /* Right-hand panel: a single vertical rule does the separating, no card. */
 .auth-aside {
+  position: relative;
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 48px;
+  /* Decorative photo behind the whole panel. `cover` fills the panel, cropping the
+     image's overflow. background-clip: padding-box keeps the image from painting
+     underneath the border, so the 1px rule stays a crisp edge that the image is
+     cut off by, rather than being covered by it. */
+  background-image: url('/loginpagebackground.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-clip: padding-box;
+}
+
+/* The photo is purely decorative, so a white scrim keeps the headline and body
+   copy legible over it. Tunable via --aside-scrim; the source image has dark
+   slate corners, so this cannot go much below ~0.5 without black text losing
+   contrast where the copy crosses them. */
+.auth-aside::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, var(--aside-scrim, 0.52));
+  pointer-events: none;
 }
 
 /* Inner wrapper keeps the panel's text in one aligned column. Biased toward the
    dividing rule with a deliberate offset — fully flush against the line reads as
    crowded, and fully centred drifts too far right. */
 .auth-aside-inner {
+  position: relative;
   width: 100%;
   max-width: 430px;
   margin: 0 0 0 90px;
@@ -561,10 +627,14 @@ tr.row-pending:hover td {
   gap: 6px;
 }
 
+/* Cell colours and timing are driven imperatively by useMotifCells in
+   Login.tsx (each cell re-rolls its own shade and duration every cycle, which
+   CSS keyframes cannot do). This rule only supplies the resting appearance. */
 .auth-motif-cell {
   aspect-ratio: 1 / 1;
   border-radius: 5px;
   border: 1px solid var(--border);
+  background-color: #f0f0f1;
 }
 
 .auth-points {

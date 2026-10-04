@@ -118,9 +118,15 @@ async def weekly_synthesis(supervisor_id: str, week_start: str) -> str:
         f"{r['name']} on {r['date']}: {r['scores']}" for r in rows
     )
     prompt = (
-        "You are a volunteer program supervisor. Given the weekly assessment data below, "
-        "write a 2-3 paragraph narrative summary covering: overall trends, who may need support, "
-        "and who deserves recognition. Be encouraging and specific.\n\n"
+        "You are an analyst preparing a briefing FOR a volunteer program supervisor. "
+        "Using the weekly assessment data below, write a 2-3 paragraph summary addressed "
+        "directly to that supervisor, covering: overall trends across the week, who may "
+        "need support, and who deserves recognition.\n\n"
+        "Voice: write in the second person. Refer to the reader as 'you', and to the "
+        "people they supervise as 'your team' or 'your volunteers'. Do NOT write as if "
+        "you are the supervisor yourself — avoid 'I', 'my team', 'my volunteers' and "
+        "'my plan'. Recommend actions the supervisor should take.\n\n"
+        "Be encouraging, specific, and grounded only in the data provided.\n\n"
         + summary_input
     )
 

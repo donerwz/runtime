@@ -1,4 +1,8 @@
-// Weekly digest view — supervisor-facing summary from Gemini's weekly synthesis.
+// Weekly digest panel — Gemini's weekly synthesis, embedded under the cohort list
+// on the home page.
+//
+// The supervisor ID is no longer collected here: POST /assess/weekly/{week_start}
+// derives it from the bearer token, so there is nothing for the user to type.
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -10,7 +14,7 @@ import {
   pollError,
   triggerWeeklySynthesis,
 } from '../api/client';
-import Sparkline from '../components/Sparkline';
+import Sparkline from './Sparkline';
 import {
   pointsFromRecords,
   readScorePoints,
@@ -18,7 +22,6 @@ import {
 } from '../lib/assessments';
 import { addDays, fmtLongDate, mondayOf, todayISO } from '../lib/dates';
 
-const SUPERVISOR_KEY = 'runtime_supervisor_id';
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 180_000;
 
@@ -26,19 +29,14 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function initialSupervisorId(): string {
-  return localStorage.getItem(SUPERVISOR_KEY) ?? '';
-}
-
-export default function WeeklyDigest() {
-  const [supervisorId, setSupervisorId] = useState(initialSupervisorId);
+export default function WeeklyDigestPanel() {
   const [weekStart, setWeekStart] = useState(mondayOf(todayISO()));
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Names for the per-student section come from the cohort list; the scores
-  // come from GET /assessments, falling back to this browser's cache.
+  // Names come from the cohort list; scores come from GET /assessments, falling
+  // back to this browser's cache.
   const [students, setStudents] = useState<Array<{ user_id: string; name: string }>>([]);
   const [pointsByUser, setPointsByUser] = useState<Record<string, ScorePoint[]>>({});
 
@@ -73,31 +71,27 @@ export default function WeeklyDigest() {
     };
   }, [students, weekStart, weekEnd]);
 
-  const sparkData = useMemo(() => {
-    return students.map((s) => {
-      const inWeek = (pointsByUser[s.user_id] ?? []).filter(
-        (p) => p.date >= weekStart && p.date <= weekEnd
-      );
-      const means = inWeek.map(
-        (p) =>
-          (p.progress + p.difficulty_handled + p.collaboration + p.consistency) / 4
-      );
-      return { ...s, count: inWeek.length, means };
-    });
-  }, [students, pointsByUser, weekStart, weekEnd]);
+  const sparkData = useMemo(
+    () =>
+      students.map((s) => {
+        const inWeek = (pointsByUser[s.user_id] ?? []).filter(
+          (p) => p.date >= weekStart && p.date <= weekEnd
+        );
+        const means = inWeek.map(
+          (p) =>
+            (p.progress + p.difficulty_handled + p.collaboration + p.consistency) / 4
+        );
+        return { ...s, count: inWeek.length, means };
+      }),
+    [students, pointsByUser, weekStart, weekEnd]
+  );
 
   async function generate() {
-    const id = supervisorId.trim();
-    if (!id) {
-      setError('Enter your supervisor user ID to generate a digest.');
-      return;
-    }
     if (!weekStart) {
       setError('Pick the Monday of the week you want.');
       return;
     }
 
-    localStorage.setItem(SUPERVISOR_KEY, id);
     setLoading(true);
     setError('');
     setSummary('');
@@ -152,39 +146,20 @@ export default function WeeklyDigest() {
     URL.revokeObjectURL(url);
   }
 
-  const cachedTotal = sparkData.reduce((n, s) => n + s.count, 0);
+  const stored = sparkData.reduce((n, s) => n + s.count, 0);
 
   return (
     <>
-      <div className="page-head">
-        <div className="grow">
-          <h1>Weekly digest</h1>
-          <p className="sub">
-            Gemini synthesises the week into a supervisor-facing narrative.
-          </p>
-        </div>
-        {summary && (
-          <button type="button" onClick={exportDigest}>
-            Export .txt
-          </button>
-        )}
-      </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-
       <div className="card">
+        <div className="card-head">
+          <h2>Weekly digest</h2>
+          <div className="grow" />
+          <span className="hint">Gemini synthesises the week into a narrative</span>
+        </div>
+
+        {error && <div className="banner banner-danger">{error}</div>}
+
         <div className="toolbar">
-          <label className="field">
-            Supervisor ID
-            <input
-              type="text"
-              value={supervisorId}
-              placeholder="your user_id UUID"
-              spellCheck={false}
-              style={{ width: 300 }}
-              onChange={(e) => setSupervisorId(e.target.value)}
-            />
-          </label>
           <label className="field">
             Week of
             <input
@@ -208,19 +183,20 @@ export default function WeeklyDigest() {
               'Generate digest'
             )}
           </button>
-          <span className="hint">
-            Pick a Monday. Your ID is remembered in this browser.
-          </span>
+          {summary && (
+            <button type="button" onClick={exportDigest}>
+              Export .txt
+            </button>
+          )}
+          <span className="hint">Pick a Monday</span>
         </div>
       </div>
 
       <div className="card">
         <div className="card-head">
-          <h2>Summary</h2>
+          <h3>Summary</h3>
           <div className="grow" />
-          <span className="hint">
-            {weekStart ? `Week of ${fmtLongDate(weekStart)}` : ''}
-          </span>
+          <span className="hint">{weekStart ? `Week of ${fmtLongDate(weekStart)}` : ''}</span>
         </div>
 
         {loading ? (
@@ -231,27 +207,24 @@ export default function WeeklyDigest() {
         ) : summary ? (
           <div className="narrative">{summary}</div>
         ) : (
-          <div className="empty">
-            No digest yet. Enter your supervisor ID and generate one.
-          </div>
+          <div className="empty">No digest yet for this week. Generate one above.</div>
         )}
       </div>
 
       <div className="card">
         <div className="card-head">
-          <h2>This week per student</h2>
+          <h3>This week per student</h3>
           <div className="grow" />
-          <span className="hint">
-            Mean of the four rubric scores, from stored assessments
-          </span>
+          <span className="hint">Mean of the four rubric scores, from stored assessments</span>
         </div>
 
         {students.length === 0 ? (
           <div className="empty">No cohort data available.</div>
         ) : sparkData.every((s) => s.count === 0) ? (
           <div className="empty">
-            No stored assessments for this week ({cachedTotal} in range). Run `python -m seed.seed_assessments`
-            or trigger an assessment from a student's page.
+            No stored assessments for this week ({stored} in range). Run{' '}
+            <code>python -m seed.seed_assessments</code> or trigger an assessment from a
+            student's page.
           </div>
         ) : (
           <div>

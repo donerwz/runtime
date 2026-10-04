@@ -10,6 +10,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Assets live in /images at the repo root so the dashboard and the extension
+  // share one copy. Pointing publicDir there serves them at /weblogo.svg etc.
+  // without duplicating files into dashboard/public.
+  publicDir: '../images',
   server: {
     proxy: {
       '/api': {

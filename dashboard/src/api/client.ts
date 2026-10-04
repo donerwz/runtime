@@ -95,8 +95,8 @@ function clearToken() {
 /** Drop the bad token and send the supervisor back to the login screen. */
 function redirectToLogin() {
   clearToken();
-  if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-    window.location.replace('/');
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.replace('/login');
   }
 }
 
