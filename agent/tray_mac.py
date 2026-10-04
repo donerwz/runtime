@@ -6,7 +6,9 @@ from agent.tracker import Tracker
 
 class RuntimeTrayApp(rumps.App):
     def __init__(self, tracker: Tracker, config: Config, api: ApiClient):
-        super().__init__("⏱", quit_button="Quit Runtime")
+        import os
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+        super().__init__("Runtime", icon=icon_path, quit_button="Quit Runtime", template=True)
         self.tracker = tracker
         self.config = config
         self.api = api
