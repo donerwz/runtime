@@ -98,7 +98,7 @@ export default function Login() {
 
           <ul className="auth-points">
             <li>Tracked hours per day, per volunteer</li>
-            <li>AI-generated scores of each volunteer's work</li>
+            <li>AI-analyzed scores of each volunteer's work</li>
             <li>Facilitate coding volunteering tracking</li>
           </ul>
         </div>
