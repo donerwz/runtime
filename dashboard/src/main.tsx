@@ -7,19 +7,31 @@ import FullCohort from './pages/FullCohort';
 import StudentPage from './pages/StudentPage';
 import ShiftApproval from './pages/ShiftApproval';
 import Layout from './components/Layout';
+import PageTransition from './components/PageTransition';
 import './styles.css';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('tracker_token');
   if (!token) return <Navigate to="/login" replace />;
-  return <Layout>{children}</Layout>;
+  return (
+    <Layout>
+      <PageTransition>{children}</PageTransition>
+    </Layout>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={
+            <PageTransition>
+              <Login />
+            </PageTransition>
+          }
+        />
         <Route
           path="/"
           element={
