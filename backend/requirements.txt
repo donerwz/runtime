@@ -3,6 +3,7 @@
 fastapi
 uvicorn[standard]
 psycopg[binary]          # psycopg v3 — Tiger Data connection driver
+psycopg-pool             # connection pool (separate package)
 python-dotenv
 google-genai             # official Gemini SDK
 pydantic
