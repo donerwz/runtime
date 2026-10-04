@@ -76,7 +76,7 @@ async def assess_day(user_id: str, date: str) -> dict:
     client = _get_client()
     for attempt in range(2):
         response = await client.aio.models.generate_content(
-            model="gemini-3.8-flash",
+            model="gemini-3.5-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -126,7 +126,7 @@ async def weekly_synthesis(supervisor_id: str, week_start: str) -> str:
 
     client = _get_client()
     response = await client.aio.models.generate_content(
-        model="gemini-3.8-flash",
+        model="gemini-3.8-flash-lite",
         contents=prompt,
     )
     return response.text
